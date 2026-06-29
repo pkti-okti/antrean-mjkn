@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Dashboard Mobile JKN & Antrean – Apr/Mei 2026</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script></script>
 <style>
 :root{
   --navy:#1F4E79;--blue:#2E75B6;--cyan:#00B0F0;
@@ -732,11 +733,115 @@ function downloadExcel(){
 }
 
 function downloadPPT(){
-  const a=document.createElement('a');
-  a.href='Presentasi_MobileJKN_Antrean_AprMei2026.pptx';
-  a.download='Presentasi_MobileJKN_Antrean_AprMei2026.pptx';
-  a.click();
-  setTimeout(()=>alert('File PowerPoint: Presentasi_MobileJKN_Antrean_AprMei2026.pptx\nPastikan berada di folder yang sama dengan dashboard ini.'),300);
+  const prs = new PptxGenJS();
+  prs.layout = 'LAYOUT_WIDE';
+
+  const C_ANT  = '#0D6E6E';
+  const C_MJKN = '#7B2D8B';
+  const C_HEAD = '#1a1a2e';
+  const C_WHITE = 'FFFFFF';
+  const C_GRAY  = 'F5F5F5';
+
+  // ── SLIDE 1: Cover ──────────────────────────────────────
+  let sl = prs.addSlide();
+  sl.background = {color:'1a1a2e'};
+  sl.addText('Dashboard Laporan', {x:0.5,y:0.8,w:12,h:0.6,fontSize:22,color:C_WHITE,bold:false,align:'center'});
+  sl.addText('Mobile JKN & Antrean Online', {x:0.5,y:1.5,w:12,h:1,fontSize:36,color:C_WHITE,bold:true,align:'center'});
+  sl.addText('April – Mei 2026', {x:0.5,y:2.7,w:12,h:0.6,fontSize:22,color:'AAAACC',align:'center'});
+  sl.addShape(prs.ShapeType.rect, {x:2,y:3.6,w:4,h:0.8,fill:{color:'0D6E6E'},line:{color:'0D6E6E'}});
+  sl.addShape(prs.ShapeType.rect, {x:7,y:3.6,w:4,h:0.8,fill:{color:'7B2D8B'},line:{color:'7B2D8B'}});
+  sl.addText('🟢 Antrean Online: '+ANT.total+' tiket', {x:2,y:3.6,w:4,h:0.8,fontSize:14,color:C_WHITE,bold:true,align:'center',valign:'middle'});
+  sl.addText('🟣 Kendala MJKN: '+MJKN.total+' tiket', {x:7,y:3.6,w:4,h:0.8,fontSize:14,color:C_WHITE,bold:true,align:'center',valign:'middle'});
+  sl.addText('Total: '+(ANT.total+MJKN.total)+' tiket', {x:0.5,y:4.7,w:12,h:0.4,fontSize:14,color:'CCCCDD',align:'center'});
+
+  // ── SLIDE 2: Ringkasan Statistik ────────────────────────
+  sl = prs.addSlide();
+  sl.addText('Ringkasan Statistik', {x:0.4,y:0.2,w:12,h:0.6,fontSize:24,bold:true,color:C_HEAD});
+  const total = ANT.total + MJKN.total;
+  const apAll = ANT.april + MJKN.april;
+  const meAll = ANT.mei   + MJKN.mei;
+  const cards = [
+    {label:'Total Tiket',val:total,        color:'1a1a2e'},
+    {label:'Antrean Online',val:ANT.total, color:'0D6E6E'},
+    {label:'Kendala MJKN',val:MJKN.total,  color:'7B2D8B'},
+    {label:'April',val:apAll,              color:'2563EB'},
+    {label:'Mei',val:meAll,               color:'059669'},
+  ];
+  cards.forEach((c,i)=>{
+    const x = 0.4 + (i%3)*4.2;
+    const y = 1.0 + Math.floor(i/3)*1.6;
+    sl.addShape(prs.ShapeType.rect,{x,y,w:3.8,h:1.4,fill:{color:c.color},line:{color:c.color}});
+    sl.addText(String(c.val),{x,y:y+0.1,w:3.8,h:0.8,fontSize:32,bold:true,color:C_WHITE,align:'center',valign:'middle'});
+    sl.addText(c.label,{x,y:y+0.85,w:3.8,h:0.4,fontSize:12,color:'DDDDDD',align:'center'});
+  });
+
+  // ── SLIDE 3: Status Tiket ────────────────────────────────
+  sl = prs.addSlide();
+  sl.addText('Status Tiket', {x:0.4,y:0.2,w:12,h:0.6,fontSize:24,bold:true,color:C_HEAD});
+  const allStatus = {};
+  Object.entries({...ANT.status,...MJKN.status}).forEach(([k,v])=>{
+    allStatus[k]=(allStatus[k]||0)+v;
+  });
+  const statColors={'Closed':'1D6F42','Resolved':'059669','Cancelled':'6B7280','Assigned':'2563EB','In Progress':'F59E0B'};
+  const statEntries = Object.entries(allStatus).sort((a,b)=>b[1]-a[1]);
+  const maxStat = Math.max(...statEntries.map(e=>e[1]));
+  statEntries.forEach(([st,cnt],i)=>{
+    const y = 1.1 + i*0.65;
+    const barW = Math.max(0.3, (cnt/maxStat)*8);
+    const col  = statColors[st]||'555555';
+    sl.addShape(prs.ShapeType.rect,{x:2.5,y:y+0.05,w:barW,h:0.45,fill:{color:col},line:{color:col}});
+    sl.addText(st,{x:0.3,y,w:2.1,h:0.55,fontSize:12,align:'right',valign:'middle',color:'333333'});
+    sl.addText(String(cnt),{x:2.5+barW+0.1,y,w:1,h:0.55,fontSize:12,bold:true,color:'333333'});
+  });
+
+  // ── SLIDE 4: Top Kategori Antrean Online ─────────────────
+  sl = prs.addSlide();
+  sl.addText('Top Kategori — Antrean Online', {x:0.4,y:0.2,w:12,h:0.6,fontSize:24,bold:true,color:'0D6E6E'});
+  const antCats = Object.entries(ANT.cats).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxAnt  = Math.max(...antCats.map(e=>e[1]));
+  antCats.forEach(([cat,cnt],i)=>{
+    const y = 1.1 + i*0.55;
+    const barW = Math.max(0.2,(cnt/maxAnt)*7.5);
+    sl.addShape(prs.ShapeType.rect,{x:3.5,y:y+0.05,w:barW,h:0.38,fill:{color:'0D6E6E'},line:{color:'0D6E6E'}});
+    const label = cat.length>40 ? cat.slice(0,38)+'…' : cat;
+    sl.addText(label,{x:0.3,y,w:3.1,h:0.48,fontSize:10,align:'right',valign:'middle',color:'333333'});
+    sl.addText(String(cnt),{x:3.5+barW+0.1,y,w:0.5,h:0.48,fontSize:11,bold:true,color:'0D6E6E'});
+  });
+
+  // ── SLIDE 5: Top Kategori Kendala MJKN ───────────────────
+  sl = prs.addSlide();
+  sl.addText('Top Kategori — Kendala MJKN', {x:0.4,y:0.2,w:12,h:0.6,fontSize:24,bold:true,color:'7B2D8B'});
+  const mjknCats = Object.entries(MJKN.cats).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxMjkn  = Math.max(...mjknCats.map(e=>e[1]));
+  mjknCats.forEach(([cat,cnt],i)=>{
+    const y = 1.1 + i*0.55;
+    const barW = Math.max(0.2,(cnt/maxMjkn)*7.5);
+    sl.addShape(prs.ShapeType.rect,{x:3.5,y:y+0.05,w:barW,h:0.38,fill:{color:'7B2D8B'},line:{color:'7B2D8B'}});
+    const label = cat.length>40 ? cat.slice(0,38)+'…' : cat;
+    sl.addText(label,{x:0.3,y,w:3.1,h:0.48,fontSize:10,align:'right',valign:'middle',color:'333333'});
+    sl.addText(String(cnt),{x:3.5+barW+0.1,y,w:0.5,h:0.48,fontSize:11,bold:true,color:'7B2D8B'});
+  });
+
+  // ── SLIDE 6: Distribusi Wilayah ───────────────────────────
+  sl = prs.addSlide();
+  sl.addText('Distribusi Wilayah', {x:0.4,y:0.2,w:12,h:0.6,fontSize:24,bold:true,color:C_HEAD});
+  const wilAll = {};
+  [...Object.entries(ANT.wilayah),...Object.entries(MJKN.wilayah)].forEach(([k,v])=>{
+    wilAll[k]=(wilAll[k]||0)+v;
+  });
+  const wilEntries = Object.entries(wilAll).sort((a,b)=>b[1]-a[1]);
+  const maxWil = Math.max(...wilEntries.map(e=>e[1]));
+  wilEntries.forEach(([wil,cnt],i)=>{
+    const y = 1.0 + i*0.48;
+    const barW = Math.max(0.2,(cnt/maxWil)*8);
+    sl.addShape(prs.ShapeType.rect,{x:2.8,y:y+0.04,w:barW,h:0.33,fill:{color:'2563EB'},line:{color:'2563EB'}});
+    sl.addText(wil,{x:0.3,y,w:2.4,h:0.42,fontSize:10,align:'right',valign:'middle',color:'333333'});
+    sl.addText(String(cnt),{x:2.8+barW+0.1,y,w:0.6,h:0.42,fontSize:10,bold:true,color:'333333'});
+  });
+
+  prs.writeFile({fileName:'Presentasi_MobileJKN_Antrean_AprMei2026.pptx'})
+    .then(()=>console.log('PPT downloaded'))
+    .catch(e=>alert('Gagal generate PPT: '+e));
 }
 </script>
 </body>
